@@ -57,12 +57,6 @@ namespace TargetClearCS
                 Console.Write("Enter an expression: ");
                 UserInput = Console.ReadLine();
                 string answer = UserInput.ToUpper();
-                if (answer == "QUIT")
-                {
-                    Score += 1;
-                    GameOver = true;
-                    
-                }
                 Console.WriteLine();
                 if (CheckIfUserInputValid(UserInput))
                 {
@@ -74,7 +68,18 @@ namespace TargetClearCS
                             RemoveNumbersUsed(UserInput, MaxNumber, NumbersAllowed);
                             NumbersAllowed = FillNumbers(NumbersAllowed, TrainingGame, MaxNumber);
                         }
+                        else
+                        {
+                            Console.WriteLine("Number is not a target!");
+                            Console.WriteLine();
+                        }
                     }
+                }
+                while (!CheckIfUserInputValid(UserInput))
+                {
+                    Console.Write("\nInvalid infix notation, enter again: ");
+                    UserInput = Console.ReadLine();
+                    Console.WriteLine();
                 }
                 Score--;
                 if (Targets[0] != -1)
@@ -85,11 +90,17 @@ namespace TargetClearCS
                 {
                     UpdateTargets(Targets, TrainingGame, MaxTarget);
                 }
+                if (answer == "QUIT")
+                {
+                    Score += 1;
+                    GameOver = true;
+
+                }
             }
             if (GameOver)
             {
                 Console.WriteLine("Game over!");
-                DisplayScore(Score);
+                Console.WriteLine($"\nFinal score: {Score}");
                 return;
             }
         }
@@ -152,6 +163,7 @@ namespace TargetClearCS
             {
                 Temp.Add(Item);
             }
+            MaxNumber = 512;
             foreach (string Item in UserInputInRPN)
             {
                 if (CheckValidNumber(Item, MaxNumber))
