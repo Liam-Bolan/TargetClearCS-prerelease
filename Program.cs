@@ -23,6 +23,7 @@ namespace TargetClearCS
             int MaxTarget;
             int MaxNumber;
             bool TrainingGame;
+            string difficulty = "";
             Console.Write("Enter y to play the training game, anything else to play a random game: ");
             string Choice = Console.ReadLine().ToLower();
             Console.WriteLine();
@@ -35,17 +36,25 @@ namespace TargetClearCS
             }
             else
             {
+                Console.Write("Select difficulty (standard, easy, medium, hard): ");
+                difficulty = Console.ReadLine();
+                while (difficulty != "standard" && difficulty != "easy" && difficulty != "medium" && difficulty != "hard")
+                {
+                    Console.Write("\nInvalid difficulty, enter again: ");
+                    difficulty = Console.ReadLine();
+                }
+                Console.WriteLine();
                 MaxNumber = 10;
                 MaxTarget = 50;
                 TrainingGame = false;
                 Targets = CreateTargets(MaxNumberOfTargets, MaxTarget);
             }
-            NumbersAllowed = FillNumbers(NumbersAllowed, TrainingGame, MaxNumber);
-            PlayGame(Targets, NumbersAllowed, TrainingGame, MaxTarget, MaxNumber);
+            NumbersAllowed = FillNumbers(NumbersAllowed, TrainingGame, MaxNumber, difficulty);
+            PlayGame(Targets, NumbersAllowed, TrainingGame, MaxTarget, MaxNumber, difficulty);
             Console.ReadLine();
         }
 
-        static void PlayGame(List<int> Targets, List<int> NumbersAllowed, bool TrainingGame, int MaxTarget, int MaxNumber)
+        static void PlayGame(List<int> Targets, List<int> NumbersAllowed, bool TrainingGame, int MaxTarget, int MaxNumber, string difficulty)
         {
             int Score = 0;
             bool GameOver = false;
@@ -57,6 +66,13 @@ namespace TargetClearCS
                 Console.Write("Enter an expression: ");
                 UserInput = Console.ReadLine();
                 string answer = UserInput.ToUpper();
+                if (answer == "QUIT" || GameOver)
+                {
+                    Console.WriteLine("\nGame over!");
+                    Console.WriteLine($"Final score: {Score}");
+                    System.Threading.Thread.Sleep(2000);
+                    Environment.Exit(0);
+                }
                 Console.WriteLine();
                 if (CheckIfUserInputValid(UserInput))
                 {
@@ -66,19 +82,15 @@ namespace TargetClearCS
                         if (CheckIfUserInputEvaluationIsATarget(Targets, UserInputInRPN, ref Score))
                         {
                             RemoveNumbersUsed(UserInput, MaxNumber, NumbersAllowed);
-                            NumbersAllowed = FillNumbers(NumbersAllowed, TrainingGame, MaxNumber);
-                        }
-                        else
-                        {
-                            Console.WriteLine("Number is not a target!");
-                            Console.WriteLine();
+                            NumbersAllowed = FillNumbers(NumbersAllowed, TrainingGame, MaxNumber, difficulty);
                         }
                     }
                 }
-                while (!CheckIfUserInputValid(UserInput))
+                if(!CheckIfUserInputValid(UserInput))
                 {
-                    Console.Write("\nInvalid infix notation, enter again: ");
-                    UserInput = Console.ReadLine();
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Invalid infix notation");
+                    Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine();
                 }
                 Score--;
@@ -90,19 +102,8 @@ namespace TargetClearCS
                 {
                     UpdateTargets(Targets, TrainingGame, MaxTarget);
                 }
-                if (answer == "QUIT")
-                {
-                    Score += 1;
-                    GameOver = true;
-
-                }
-            }
-            if (GameOver)
-            {
-                Console.WriteLine("Game over!");
-                Console.WriteLine($"\nFinal score: {Score}");
-                return;
-            }
+               
+            } 
         }
 
         static bool CheckIfUserInputEvaluationIsATarget(List<int> Targets, List<string> UserInputInRPN, ref int Score)
@@ -118,7 +119,15 @@ namespace TargetClearCS
                         Score += 2;
                         Targets[Count] = -1;
                         UserInputEvaluationIsATarget = true;
+                        
                     }
+                }
+                if (!UserInputEvaluationIsATarget)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Equation does not evaluate to a target");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.WriteLine();
                 }
             }
             return UserInputEvaluationIsATarget;
@@ -127,6 +136,13 @@ namespace TargetClearCS
         static void RemoveNumbersUsed(string UserInput, int MaxNumber, List<int> NumbersAllowed)
         {
             List<string> UserInputInRPN = ConvertToRPN(UserInput);
+            List<int> LargeNums = new List<int>();
+
+            LargeNums.Add(25);
+            LargeNums.Add(50);
+            LargeNums.Add(75);
+            LargeNums.Add(100);
+
             foreach (string Item in UserInputInRPN)
             {
                 if (CheckValidNumber(Item, MaxNumber))
@@ -135,6 +151,13 @@ namespace TargetClearCS
                     {
                         NumbersAllowed.Remove(Convert.ToInt32(Item));
                     }
+                }
+            }
+            foreach(int largenum in LargeNums)
+            {
+                if (NumbersAllowed.Contains(largenum))
+                {
+                    NumbersAllowed.Remove(largenum);
                 }
             }
         }
@@ -174,6 +197,10 @@ namespace TargetClearCS
                     }
                     else
                     {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Number(s) used are not allowed!");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine();
                         return false;
                     }
                 }
@@ -382,13 +409,16 @@ namespace TargetClearCS
             return Targets;
         }
 
-        static List<int> FillNumbers(List<int> NumbersAllowed, bool TrainingGame, int MaxNumber)
+        static List<int> FillNumbers(List<int> NumbersAllowed, bool TrainingGame, int MaxNumber, string difficulty)
         {
+            int[] LargeNums = { 25, 50, 75, 100 };
+            Random rng = new Random();
+
             if (TrainingGame)
             {
                 return new List<int> { 2, 3, 2, 8, 512 };
             }
-            else
+            else if (difficulty == "standard")
             {
                 while (NumbersAllowed.Count < 5)
                 {
@@ -396,6 +426,57 @@ namespace TargetClearCS
                 }
                 return NumbersAllowed;
             }
+            else if(difficulty == "easy")
+            {
+                while(NumbersAllowed.Count < 4)
+                {
+                    NumbersAllowed.Add(GetNumber(MaxNumber));
+                }
+                int rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+                
+                return NumbersAllowed;
+            }
+            else if (difficulty == "medium")
+            {
+                while (NumbersAllowed.Count < 3)
+                {
+                    NumbersAllowed.Add(GetNumber(MaxNumber));
+                }
+                int rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+
+                rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+
+                return NumbersAllowed;
+
+            }
+            else if(difficulty == "hard")
+            {
+                while (NumbersAllowed.Count < 1)
+                {
+                    NumbersAllowed.Add(GetNumber(MaxNumber));
+                }
+                int rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+                rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+                rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+                rannum = rng.Next(0, 4);
+
+                NumbersAllowed.Add(LargeNums[rannum]);
+
+                return NumbersAllowed;
+            }
+            return null;
         }
     }
 }
